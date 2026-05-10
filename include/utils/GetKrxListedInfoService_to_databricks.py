@@ -8,7 +8,7 @@ import io, os
 
 # 설정 정보
 GCS_BUCKET = os.getenv("GCS_BUCKET")      # GCS 버킷 이름
-API_KEY = os.getenv("DATA_GO_KR_API_KEY") # 공공데이터 포털 API 키
+API_KEY = os.getenv("DATA_GO_KR_API_KEY") # 공공데이터 포털 API 키 
 
 
 def _extract_and_upload_to_gcs(ds):
