@@ -1,0 +1,20 @@
+# 핵심 의존성 (버전 고정 해제)
+pandas
+numpy
+pyarrow
+setuptools
+
+# Airflow 프로바이더
+apache-airflow-providers-databricks
+apache-airflow-providers-google
+
+# Databricks 연결 (SQLAlchemy 통합 포함) -> 최신 databricks-sql-connector는 sqlalchemy와의 호환성이 개선
+databricks-sql-connector
+
+# GCP 관련
+google-cloud-secret-manager
+google-cloud-storage
+
+# Airflow 3.x 호환성을 위한 최소 버전만 유지
+SQLAlchemy>=2.0.0
+flask-sqlalchemy>=3.0.0
