@@ -1,9 +1,16 @@
+from ast import Dict
 import pendulum
 from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
 import logging
 from datetime import timedelta
 
 KST = pendulum.timezone("Asia/Seoul")
+
+# Airflow owner → Slack Member ID 매핑
+OWNER_SLACK_ID = {
+    "wkd_gh": "U0B2W1430SV",
+    "thanku": "U0B2U4S79NW"
+}
 
 # --------------------------------
 # Helper Functions
@@ -17,6 +24,12 @@ def _truncate(s: str, limit: int = 1700) -> str:
         return ""
     s = str(s)
     return (s[:limit] + " …(truncated)") if len(s) > limit else s
+
+def _owner_mention(context):
+    ti = context["ti"]
+    owner = getattr(ti.task, "owner", "")
+    slack_id = OWNER_SLACK_ID.get(owner)
+    return f"<@{slack_id}>" if slack_id else f"@{owner}"
 
 def slack_failed_callback(context):
     """
@@ -69,7 +82,7 @@ def slack_failed_callback(context):
     # -------------------------------------------------------
     # 헤더와 필드 정보
     main_blocks_1 = [
-        {"type": "header", "text": {"type": "plain_text", "text": ":rotating_light: Task Failed", "emoji": True}},
+        {"type": "header", "text": {"type": "plain_text", "text": f":alert: Task Failed - {task_id}", "emoji": True}},
         {"type": "divider"},
     ]
     
@@ -97,14 +110,14 @@ def slack_failed_callback(context):
     main_blocks_2.append({
         "type": "section",
         "fields": [
-            {"type": "mrkdwn", "text": f"*Try*\n`{try_number}/{max_tries}`"},
+            {"type": "mrkdwn", "text": f"*Try*\n`{try_number}/{max_tries + 1}`"},
             {"type": "mrkdwn", "text": f"*Duration*\n`{duration}`"},
         ]
     })
 
     # Owner, Tags 정보 추가
     extra_fields = []
-    if owner: extra_fields.append({"type": "mrkdwn", "text": f"*Owner*\n`{owner}`"})
+    if owner: extra_fields.append({"type": "mrkdwn", "text": f"*Owner*\n{_owner_mention(context)}"})
     if tags:  extra_fields.append({"type": "mrkdwn", "text": f"*Tags*\n`{tags}`"})
     
     if extra_fields:
@@ -160,7 +173,7 @@ def slack_failed_callback(context):
         "blocks": main_blocks_2
     }
     attachment_bottom = {
-        "blocks": err_blocks + button_block + footer_block
+        "blocks": err_blocks + button_block
     }
 
     payload = {
