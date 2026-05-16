@@ -248,4 +248,4 @@ docker compose up --build -d
 
 #### 4. Airflow UI 접속
 
-`http://localhost:8080` 에서 `.env`에 설정한 계정으로 로그인합니다. 
+`http://localhost:8080` 에서 `.env`에 설정한 계정으로 로그인합니다.
