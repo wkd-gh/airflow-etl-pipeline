@@ -69,7 +69,7 @@ def slack_failed_callback(context):
     tags  = ", ".join(getattr(dag, "tags", []) or [])
 
     # Links & error
-    VM_EXTERNAL_IP = "localhost:8080" # 나중에 gcp vm static ip로 변경
+    VM_EXTERNAL_IP = "34.50.49.51:8080"  # 실제 VM 고정 IP로 변경
     log_url = ti.log_url
     
     if "localhost" in log_url:
@@ -82,7 +82,7 @@ def slack_failed_callback(context):
     # -------------------------------------------------------
     # 헤더와 필드 정보
     main_blocks_1 = [
-        {"type": "header", "text": {"type": "plain_text", "text": f":alert: Task Failed - {task_id}", "emoji": True}},
+        {"type": "header", "text": {"type": "plain_text", "text": f":alert: DAG Failed - {dag_id}", "emoji": True}},
         {"type": "divider"},
     ]
     
@@ -180,6 +180,108 @@ def slack_failed_callback(context):
         "blocks": main_blocks_1, 
         "attachments": [attachment_main, attachment_bottom], 
         "unfurl_links": False
+    }
+
+    try:
+        SlackWebhookHook(slack_webhook_conn_id="slack_webhook_conn").send_dict(payload)
+    except Exception as e:
+        logging.exception("Slack callback failed: %s", e)
+
+
+def slack_success_callback(context):
+    """
+    Airflow → Slack 성공 알림
+    - Attachment를 사용하여 초록색 라인 적용
+    """
+    ti = context["ti"]
+    dag = context["dag"]
+
+    dag_id = dag.dag_id
+    task_id = ti.task_id
+
+    logical_date_utc = context["logical_date"]
+    run_time_kst = logical_date_utc.in_timezone(KST).strftime("%Y-%m-%d %H:%M:%S")
+    run_time_utc_iso = logical_date_utc.isoformat()
+
+    di_start = context.get("data_interval_start")
+    di_end   = context.get("data_interval_end")
+    di_kst = ""
+    if di_start and di_end:
+        di_kst = f"{di_start.in_timezone(KST).strftime('%Y-%m-%d %H:%M:%S')} ~ {di_end.in_timezone(KST).strftime('%Y-%m-%d %H:%M:%S')}"
+
+    start = ti.start_date
+    end = ti.end_date or pendulum.now("UTC")
+    duration = _fmt_td((end - start).total_seconds() if start else 0)
+
+    owner = getattr(ti.task, "owner", "")
+    tags  = ", ".join(getattr(dag, "tags", []) or [])
+
+    VM_EXTERNAL_IP = "34.50.49.51:8080"
+    log_url = ti.log_url
+    if "localhost" in log_url:
+        log_url = log_url.replace("localhost:8080", VM_EXTERNAL_IP)
+
+    main_blocks_1 = [
+        {"type": "header", "text": {"type": "plain_text", "text": f":white_check_mark: DAG Succeeded - {dag_id}", "emoji": True}},
+        {"type": "divider"},
+    ]
+
+    main_blocks_2 = [
+        {
+            "type": "section",
+            "fields": [
+                {"type": "mrkdwn", "text": f"*DAG*\n`{dag_id}`"},
+                {"type": "mrkdwn", "text": f"*Task*\n`{task_id}`"},
+            ]
+        },
+        {
+            "type": "section",
+            "fields": [
+                {"type": "mrkdwn", "text": f"*Run (KST)*\n`{run_time_kst}`"},
+                {"type": "mrkdwn", "text": f"*Run (UTC)*\n`{run_time_utc_iso}`"},
+            ]
+        },
+        {
+            "type": "section",
+            "fields": [
+                {"type": "mrkdwn", "text": f"*Duration*\n`{duration}`"},
+            ]
+        },
+    ]
+
+    extra_fields = []
+    if owner: extra_fields.append({"type": "mrkdwn", "text": f"*Owner*\n{_owner_mention(context)}"})
+    if tags:  extra_fields.append({"type": "mrkdwn", "text": f"*Tags*\n`{tags}`"})
+    if extra_fields:
+        main_blocks_2.append({"type": "section", "fields": extra_fields})
+
+    button_block = [
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "View Logs  :airflow:", "emoji": True},
+                    "url": log_url,
+                }
+            ]
+        }
+    ]
+
+    footer_block = []
+    if di_kst:
+        footer_block = [
+            {"type": "divider"},
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": "Money Digger by Airflow"}]}
+        ]
+
+    payload = {
+        "blocks": main_blocks_1,
+        "attachments": [
+            {"color": "#2EB67D", "blocks": main_blocks_2},
+            {"blocks": button_block + footer_block},
+        ],
+        "unfurl_links": False,
     }
 
     try:

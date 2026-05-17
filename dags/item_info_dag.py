@@ -6,6 +6,7 @@ import os, pendulum
 try:
     from include.utils.common.slack_helper import (
         slack_failed_callback,
+        slack_success_callback,
     )
 except Exception as e:
     raise AirflowFailException(f"Cannot import python_func from include/utils/common/slack_helper.py: {e}")
@@ -44,6 +45,7 @@ with DAG(
         "owner": "wkd_gh",
         "on_failure_callback": slack_failed_callback,
     },
+    on_success_callback=slack_success_callback,
     tags=["GetKrxListedInfoService", "databricks", "GCS", "item_info"],
 ) as dag:
 
