@@ -1,10 +1,6 @@
-from airflow.providers.google.cloud.hooks.gcs import GCSHook
 from airflow.sdk.exceptions import AirflowFailException, AirflowSkipException
 from include.utils.common.databricks_helper import _get_databricks_conn, _get_start_dt, _merge_records
 from include.utils.common.data_go_kr_helper import _fetch_all_items
-from include.utils.common.secret_manager_helper import get_secret
-import pandas as pd
-import io
 
 TABLE = "money_digger.equity_derivative.stock_price_info"
 GCS_PREFIX = "GetStockSecuritiesInfoService"
@@ -26,10 +22,14 @@ def _extract_and_upload_to_gcs(ds):
     if not items:
         raise AirflowSkipException("새로운 데이터 없음, 스킵")
 
+    import pandas as pd
+    import io
     df = pd.DataFrame(items)
     json_buffer = io.StringIO()
     df.to_json(json_buffer, orient='records', force_ascii=False)
 
+    from airflow.providers.google.cloud.hooks.gcs import GCSHook
+    from include.utils.common.secret_manager_helper import get_secret
     gcs_bucket = get_secret("GCS_BUCKET")
     gcs_hook = GCSHook(gcp_conn_id='google_cloud_conn')
     gcs_hook.upload(
@@ -44,6 +44,8 @@ def _extract_and_upload_to_gcs(ds):
 
 def _load_gcs_to_databricks(ds):
     import json
+    from airflow.providers.google.cloud.hooks.gcs import GCSHook
+    from include.utils.common.secret_manager_helper import get_secret
 
     gcs_bucket = get_secret("GCS_BUCKET")
     gcs_hook = GCSHook(gcp_conn_id='google_cloud_conn')
