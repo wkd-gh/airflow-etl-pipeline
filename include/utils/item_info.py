@@ -2,12 +2,9 @@ from airflow.providers.google.cloud.hooks.gcs import GCSHook
 from airflow.sdk.exceptions import AirflowFailException, AirflowSkipException
 from include.utils.common.databricks_helper import _get_databricks_conn, _get_start_dt, _merge_records
 from include.utils.common.data_go_kr_helper import _fetch_all_items
+from include.utils.common.secret_manager_helper import get_secret
 import pandas as pd
-import io, os
-
-
-# 설정 정보
-GCS_BUCKET = os.getenv("GCS_BUCKET")  # GCS 버킷 이름
+import io
 
 TABLE = "money_digger.equity_derivative.item_info"
 GCS_PREFIX = "GetKrxListedInfoService"
@@ -42,15 +39,16 @@ def _extract_and_upload_to_gcs(ds):
     df.to_json(json_buffer, orient='records', force_ascii=False)
 
     # 4. GCS 업로드
+    gcs_bucket = get_secret("GCS_BUCKET")
     gcs_hook = GCSHook(gcp_conn_id='google_cloud_conn')
     gcs_hook.upload(
-        bucket_name=GCS_BUCKET,
+        bucket_name=gcs_bucket,
         object_name=f"{GCS_PREFIX}/item_info_{ds}.json",
         data=json_buffer.getvalue(),
         mime_type='application/json'
     )
 
-    print(f"✅ GCS 업로드 완료: {len(items)}건 → gs://{GCS_BUCKET}/{GCS_PREFIX}/item_info_{ds}.json")
+    print(f"✅ GCS 업로드 완료: {len(items)}건 → gs://{gcs_bucket}/{GCS_PREFIX}/item_info_{ds}.json")
 
 
 def _load_gcs_to_databricks(ds):
@@ -58,9 +56,10 @@ def _load_gcs_to_databricks(ds):
     import json
 
     # 1. GCS에서 raw JSON 읽기
+    gcs_bucket = get_secret("GCS_BUCKET")
     gcs_hook = GCSHook(gcp_conn_id='google_cloud_conn')
     raw_data = gcs_hook.download(
-        bucket_name=GCS_BUCKET,
+        bucket_name=gcs_bucket,
         object_name=f"{GCS_PREFIX}/item_info_{ds}.json"
     )
     records = json.loads(raw_data)

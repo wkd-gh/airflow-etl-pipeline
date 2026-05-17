@@ -1,8 +1,7 @@
 import requests
-import os
+from include.utils.common.secret_manager_helper import get_secret
 
-API_KEY = os.getenv("DATA_GO_KR_API_KEY")  # 공공데이터 포털 API 키
-PAGE_SIZE = 10000                           # 공공데이터 포털 API 최대 허용 행 수
+PAGE_SIZE = 10000  # 공공데이터 포털 API 최대 허용 행 수
 
 
 def _fetch_all_items(url: str, start_dt: str = None):
@@ -16,7 +15,7 @@ def _fetch_all_items(url: str, start_dt: str = None):
         start_dt: 수집 시작 날짜 (yyyyMMdd), None이면 전체 수집
     """
     base_params = {
-        'serviceKey': API_KEY,
+        'serviceKey': get_secret("DATA_GO_KR_API_KEY"),
         'resultType': 'json',
         'numOfRows': str(PAGE_SIZE),
         'pageNo': '1',
