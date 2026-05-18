@@ -42,7 +42,6 @@ with DAG(
         "owner": "wkd_gh",
         "on_failure_callback": slack_failed_callback,
     },
-    on_success_callback=slack_success_callback,
     tags=["GetStockSecuritiesInfoService", "databricks", "GCS", "securities_price_info"],
 ) as dag:
 
@@ -53,7 +52,8 @@ with DAG(
 
     load_to_databricks = PythonOperator(
         task_id='load_to_databricks',
-        python_callable=_load_to_databricks
+        python_callable=_load_to_databricks,
+        on_success_callback=slack_success_callback,
     )
 
     upload_to_gcs >> load_to_databricks

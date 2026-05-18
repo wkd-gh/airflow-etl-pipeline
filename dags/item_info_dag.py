@@ -45,7 +45,6 @@ with DAG(
         "owner": "wkd_gh",
         "on_failure_callback": slack_failed_callback,
     },
-    on_success_callback=slack_success_callback,
     tags=["GetKrxListedInfoService", "databricks", "GCS", "item_info"],
 ) as dag:
 
@@ -58,7 +57,8 @@ with DAG(
     # Task 2: GCS raw JSON → Databricks Delta Table 적재
     load_to_databricks = PythonOperator(
         task_id='load_to_databricks',
-        python_callable=_load_to_databricks
+        python_callable=_load_to_databricks,
+        on_success_callback=slack_success_callback,
     )
 
     upload_to_gcs >> load_to_databricks
