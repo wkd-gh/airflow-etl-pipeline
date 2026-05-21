@@ -1,4 +1,4 @@
-# equity-derivative-etl
+# airflow-etl-pipeline
 
 <p align="left">
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=Python&logoColor=white"/>
@@ -13,7 +13,7 @@
 ## English Version
 
 ### Project Overview
-**equity-derivative-etl** is an ETL pipeline that collects financial data from the Financial Services Commission (FSC) of Korea via the Public Data Portal (data.go.kr) Open API, stores raw JSON files in Google Cloud Storage (GCS), and loads them into Databricks Delta Tables for analytical use.
+**airflow-etl-pipeline** is an ETL pipeline that collects financial data from the Financial Services Commission (FSC) of Korea via the Public Data Portal (data.go.kr) Open API, stores raw JSON files in Google Cloud Storage (GCS), and loads them into Databricks Delta Tables for analytical use.
 
 ### Pipeline Flow
 
@@ -56,7 +56,7 @@ All DAGs run daily at **23:59 KST** with `catchup=False` and `max_active_runs=1`
 ### Project Structure
 
 ```
-equity-derivative-etl/
+airflow-etl-pipeline/
 ├── dags/
 │   ├── item_info_dag.py
 │   ├── stock_price_info_dag.py
@@ -93,7 +93,7 @@ equity-derivative-etl/
 
 ```bash
 git clone <repo-url>
-cd equity-derivative-etl
+cd airflow-etl-pipeline
 cp .env.example .env
 ```
 
@@ -134,7 +134,7 @@ Navigate to `http://localhost:8080` and log in with the credentials set in `.env
 ## 한국어 버전
 
 ### 프로젝트 개요
-**equity-derivative-etl**은 공공데이터포털(data.go.kr) 금융위원회 API에서 금융 데이터를 수집하여 Google Cloud Storage(GCS)에 raw JSON으로 저장하고, Databricks Delta Table에 적재하는 ETL 파이프라인입니다.
+**airflow-etl-pipeline**은 공공데이터포털(data.go.kr) 금융위원회 API에서 금융 데이터를 수집하여 Google Cloud Storage(GCS)에 raw JSON으로 저장하고, Databricks Delta Table에 적재하는 ETL 파이프라인입니다.
 
 ### 파이프라인 흐름
 
@@ -177,7 +177,7 @@ Navigate to `http://localhost:8080` and log in with the credentials set in `.env
 ### 프로젝트 구조
 
 ```
-equity-derivative-etl/
+airflow-etl-pipeline/
 ├── dags/
 │   ├── item_info_dag.py
 │   ├── stock_price_info_dag.py
@@ -214,7 +214,7 @@ equity-derivative-etl/
 
 ```bash
 git clone <repo-url>
-cd equity-derivative-etl
+cd airflow-etl-pipeline
 cp .env.example .env
 ```
 
