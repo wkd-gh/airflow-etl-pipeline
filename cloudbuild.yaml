@@ -41,13 +41,13 @@ steps:
           || git diff --name-only $(git rev-list --max-parents=0 HEAD) HEAD)
 
         echo "===== Changed Files ====="
-        echo "$CHANGED_FILES"
+        echo "$$CHANGED_FILES"
         echo "========================="
 
-        DOCKER_CHANGED=$(echo "$CHANGED_FILES" \
+        DOCKER_CHANGED=$(echo "$$CHANGED_FILES" \
           | grep -E "(Dockerfile|docker-compose\.ya?ml|requirements.*\.txt)" || true)
 
-        if [ -n "$DOCKER_CHANGED" ]; then
+        if [ -n "$$DOCKER_CHANGED" ]; then
           echo "[Docker] git pull + docker compose up -d --build"
           SSH_SCRIPT='set -e
         cd ~/airflow-etl-pipeline
@@ -59,7 +59,7 @@ steps:
           ssh -i /root/.ssh/id_rsa \
               -o StrictHostKeyChecking=no \
               -o ConnectTimeout=10 \
-              moneydigger777@34.50.49.51 "$SSH_SCRIPT"
+              moneydigger777@34.50.49.51 "$$SSH_SCRIPT"
         else
           echo "[Code] git pull only"
           SSH_SCRIPT='set -e
@@ -71,7 +71,7 @@ steps:
           ssh -i /root/.ssh/id_rsa \
               -o StrictHostKeyChecking=no \
               -o ConnectTimeout=10 \
-              moneydigger777@34.50.49.51 "$SSH_SCRIPT"
+              moneydigger777@34.50.49.51 "$$SSH_SCRIPT"
         fi
     volumes:
       - name: 'ssh'
@@ -87,10 +87,10 @@ steps:
       - |
         CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null \
           || git diff --name-only $(git rev-list --max-parents=0 HEAD) HEAD)
-        DOCKER_CHANGED=$(echo "$CHANGED_FILES" \
+        DOCKER_CHANGED=$(echo "$$CHANGED_FILES" \
           | grep -E "(Dockerfile|docker-compose\.ya?ml|requirements.*\.txt)" || true)
 
-        if [ -n "$DOCKER_CHANGED" ]; then
+        if [ -n "$$DOCKER_CHANGED" ]; then
           DEPLOY_TYPE="Docker rebuild + deploy"
         else
           DEPLOY_TYPE="Code sync (git pull only)"
@@ -104,7 +104,7 @@ steps:
               \"fields\": [
                 {\"title\": \"Branch\",       \"value\": \"$BRANCH_NAME\", \"short\": true},
                 {\"title\": \"Commit\",       \"value\": \"$SHORT_SHA\",   \"short\": true},
-                {\"title\": \"Deploy Type\",  \"value\": \"$DEPLOY_TYPE\", \"short\": false}
+                {\"title\": \"Deploy Type\",  \"value\": \"$$DEPLOY_TYPE\", \"short\": false}
               ],
               \"footer\": \"Google Cloud Build\",
               \"ts\": $(date +%s)
