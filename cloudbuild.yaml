@@ -87,10 +87,10 @@ steps:
       - |
         CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null \
           || git diff --name-only $(git rev-list --max-parents=0 HEAD) HEAD)
-        DOCKER_CHANGED=$(echo "$CHANGED_FILES" \
+        DOCKER_CHANGED=$(echo "$$CHANGED_FILES" \
           | grep -E "(Dockerfile|docker-compose\.ya?ml|requirements.*\.txt)" || true)
  
-        if [ -n "$DOCKER_CHANGED" ]; then
+        if [ -n "$$DOCKER_CHANGED" ]; then
           DEPLOY_TYPE=":docker: Docker rebuild + deploy"
         else
           DEPLOY_TYPE=":file: Code sync (git pull only)"
