@@ -231,7 +231,7 @@ def slack_success_callback(context):
         log_url = f"http://{VM_EXTERNAL_IP}/dags/{dag_id}/grid"
 
     main_blocks_1 = [
-        {"type": "header", "text": {"type": "plain_text", "text": f":check_custom: DAG Succeeded - {dag_id}", "emoji": True}},
+        {"type": "header", "text": {"type": "plain_text", "text": f":check-custom: DAG Succeeded - {dag_id}", "emoji": True}},
         {"type": "divider"},
     ]
 

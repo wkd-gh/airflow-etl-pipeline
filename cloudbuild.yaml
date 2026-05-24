@@ -96,7 +96,7 @@ steps:
           DEPLOY_TYPE=":file: Code sync (git pull only)"
         fi
  
-        LOG_URL="https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=equity-derivative-etl"
+        LOG_URL="https://console.cloud.google.com/cloud-build/builds;region=asia-northeast3/$BUILD_ID?project=equity-derivative-etl"
         REPO_URL="https://github.com/Money-Digger/airflow-etl-pipeline/commit/$COMMIT_SHA"
  
         curl -s -X POST -H 'Content-type: application/json' \
@@ -108,7 +108,7 @@ steps:
                   \"type\": \"section\",
                   \"text\": {
                     \"type\": \"mrkdwn\",
-                    \"text\": \":check_custom: *airflow-etl-pipeline deployed successfully*\"
+                    \"text\": \":check-custom: *airflow-etl-pipeline deployed successfully*\"
                   }
                 },
                 {
@@ -130,16 +130,13 @@ steps:
                   \"elements\": [
                     {
                       \"type\": \"button\",
-                      \"text\": {\"type\": \"plain_text\", \"text\": \"View Build Logs :cloudbuild:\", \"emoji\": true},
+                      \"text\": {\"type\": \"plain_text\", \"text\": \"View Build Logs  :cloudbuild:\", \"emoji\": true},
                       \"url\": \"$$LOG_URL\"
                     }
                   ]
                 },
                 {
-                  \"type\": \"context\",
-                  \"elements\": [
-                    {\"type\": \"mrkdwn\", \"text\": \"$$(date '+%Y-%m-%d %H:%M:%S') KST\"}
-                  ]
+                  \"type\": \"divider\"
                 }
               ]
             }]
