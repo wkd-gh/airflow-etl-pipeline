@@ -93,7 +93,7 @@ steps:
         if [ -n "$$DOCKER_CHANGED" ]; then
           DEPLOY_TYPE=":docker: Docker rebuild + deploy"
         else
-          DEPLOY_TYPE=":file: Code sync (git pull only)"
+          DEPLOY_TYPE=":open-folder: Code sync (git pull only)"
         fi
  
         LOG_URL="https://console.cloud.google.com/cloud-build/builds;region=asia-northeast3/$BUILD_ID?project=equity-derivative-etl"
