@@ -1,0 +1,58 @@
+steps:
+  # ── 1. VM에 SSH 키 설정 ──────────────────────────────────────
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'setup-ssh'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "$$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
+        chmod 600 /root/.ssh/id_rsa
+        ssh-keyscan -H 34.50.49.51 >> /root/.ssh/known_hosts
+    secretEnv:
+      - 'SSH_PRIVATE_KEY'
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
+
+  # ── 2. 변경된 파일 감지 후 분기 배포 ─────────────────────────
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'deploy'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # 이전 커밋과 비교해서 변경된 파일 목록 확인
+        CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+        echo "변경된 파일: $CHANGED_FILES"
+
+        # Docker 관련 파일 변경 여부 확인
+        DOCKER_CHANGED=$(echo "$CHANGED_FILES" | grep -E "^(Dockerfile|docker-compose\.yaml|requirements\.txt)" || true)
+
+        if [ -n "$DOCKER_CHANGED" ]; then
+          echo "🐳 Docker 관련 파일 변경 감지 → git pull + docker compose up -d"
+          ssh -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no moneydigger777@34.50.49.51 << 'ENDSSH'
+            cd ~/equity-derivative-etl
+            sudo chown -R $USER:$USER dags/ include/ || true
+            git pull origin main
+            docker compose up -d --build
+ENDSSH
+        else
+          echo "📁 DAG/코드 파일 변경 감지 → git pull만 실행"
+          ssh -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no moneydigger777@34.50.49.51 << 'ENDSSH'
+            cd ~/equity-derivative-etl
+            sudo chown -R $USER:$USER dags/ include/ || true
+            git pull origin main
+ENDSSH
+        fi
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/equity-derivative-etl/secrets/CLOUD_BUILD_SSH_PRIVATE_KEY/versions/latest
+      env: 'SSH_PRIVATE_KEY'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
