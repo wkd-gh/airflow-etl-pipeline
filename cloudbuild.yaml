@@ -1,58 +1,140 @@
 steps:
-  # ── 1. VM에 SSH 키 설정 ──────────────────────────────────────
+  # ── 1. Fetch 충분한 git history (shallow clone 대비) ──────────
+  - name: 'gcr.io/cloud-builders/git'
+    id: 'git-fetch'
+    args:
+      - 'fetch'
+      - '--depth=2'
+      - 'origin'
+      - 'main'
+
+  # ── 2. SSH 키 설정 ────────────────────────────────────────────
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'setup-ssh'
+    waitFor: ['git-fetch']
     entrypoint: 'bash'
     args:
       - '-c'
       - |
+        mkdir -p /root/.ssh
         echo "$$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
         chmod 600 /root/.ssh/id_rsa
         ssh-keyscan -H 34.50.49.51 >> /root/.ssh/known_hosts
+        chmod 600 /root/.ssh/known_hosts
     secretEnv:
       - 'SSH_PRIVATE_KEY'
     volumes:
       - name: 'ssh'
         path: /root/.ssh
 
-  # ── 2. 변경된 파일 감지 후 분기 배포 ─────────────────────────
+  # ── 3. 변경 파일 감지 후 분기 배포 ───────────────────────────
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'deploy'
+    waitFor: ['setup-ssh']
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        # 이전 커밋과 비교해서 변경된 파일 목록 확인
-        CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
-        echo "변경된 파일: $CHANGED_FILES"
+        set -e
 
-        # Docker 관련 파일 변경 여부 확인
-        DOCKER_CHANGED=$(echo "$CHANGED_FILES" | grep -E "^(Dockerfile|docker-compose\.yaml|requirements\.txt)" || true)
+        # shallow clone 환경에서도 안전하게 diff 추출
+        CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null \
+          || git diff --name-only $(git rev-list --max-parents=0 HEAD) HEAD)
+
+        echo "===== 변경된 파일 ====="
+        echo "$CHANGED_FILES"
+        echo "========================"
+
+        # Dockerfile, docker-compose, requirements 변경 감지 (서브디렉토리 포함)
+        DOCKER_CHANGED=$(echo "$CHANGED_FILES" \
+          | grep -E "(Dockerfile|docker-compose\.ya?ml|requirements.*\.txt)" || true)
 
         if [ -n "$DOCKER_CHANGED" ]; then
-          echo "🐳 Docker 관련 파일 변경 감지 → git pull + docker compose up -d"
-          ssh -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no moneydigger777@34.50.49.51 << 'ENDSSH'
-            cd ~/equity-derivative-etl
-            sudo chown -R $USER:$USER dags/ include/ || true
-            git pull origin main
-            docker compose up -d --build
+          echo "🐳 Docker 관련 파일 변경 감지 → git pull + docker compose up -d --build"
+          ssh -i /root/.ssh/id_rsa \
+              -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=10 \
+              moneydigger777@34.50.49.51 bash << 'ENDSSH'
+set -e
+cd ~/airflow-etl-pipeline
+[ -d dags ]    && sudo chown -R $USER:$USER dags/    || true
+[ -d include ] && sudo chown -R $USER:$USER include/ || true
+git pull origin main
+docker compose up -d --build
+echo "✅ Docker 재빌드 및 배포 완료"
 ENDSSH
         else
           echo "📁 DAG/코드 파일 변경 감지 → git pull만 실행"
-          ssh -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no moneydigger777@34.50.49.51 << 'ENDSSH'
-            cd ~/equity-derivative-etl
-            sudo chown -R $USER:$USER dags/ include/ || true
-            git pull origin main
+          ssh -i /root/.ssh/id_rsa \
+              -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=10 \
+              moneydigger777@34.50.49.51 bash << 'ENDSSH'
+set -e
+cd ~/airflow-etl-pipeline
+[ -d dags ]    && sudo chown -R $USER:$USER dags/    || true
+[ -d include ] && sudo chown -R $USER:$USER include/ || true
+git pull origin main
+echo "✅ 코드 동기화 완료 (Docker 재빌드 불필요)"
 ENDSSH
         fi
     volumes:
       - name: 'ssh'
         path: /root/.ssh
 
+  # ── 4. Slack 성공 알림 ────────────────────────────────────────
+  - name: 'gcr.io/cloud-builders/curl'
+    id: 'notify-success'
+    waitFor: ['deploy']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null \
+          || git diff --name-only $(git rev-list --max-parents=0 HEAD) HEAD)
+        DOCKER_CHANGED=$(echo "$CHANGED_FILES" \
+          | grep -E "(Dockerfile|docker-compose\.ya?ml|requirements.*\.txt)" || true)
+
+        if [ -n "$DOCKER_CHANGED" ]; then
+          DEPLOY_TYPE="🐳 Docker 재빌드 + 배포"
+        else
+          DEPLOY_TYPE="📁 코드 동기화 (git pull)"
+        fi
+
+        curl -s -X POST -H 'Content-type: application/json' \
+          --data "{
+            \"attachments\": [{
+              \"color\": \"#36a64f\",
+              \"title\": \"✅ 배포 성공 — airflow-etl-pipeline\",
+              \"fields\": [
+                {\"title\": \"Branch\",   \"value\": \"$BRANCH_NAME\",  \"short\": true},
+                {\"title\": \"Commit\",   \"value\": \"$SHORT_SHA\",    \"short\": true},
+                {\"title\": \"배포 방식\", \"value\": \"$DEPLOY_TYPE\",  \"short\": false}
+              ],
+              \"footer\": \"Google Cloud Build\",
+              \"ts\": $(date +%s)
+            }]
+          }" \
+          "$$CLOUD_BUILD_SLACK_WEBHOOK_URL"
+    secretEnv:
+      - 'CLOUD_BUILD_SLACK_WEBHOOK_URL'
+
+# ── 5. Slack 실패 알림 (빌드 실패 시에도 항상 실행) ──────────
+# Cloud Build는 step 실패 시 이후 step을 건너뜀
+# 실패 알림은 Cloud Build Pub/Sub 트리거 or Cloud Functions로 별도 구성 권장
+# (아래는 참고용 주석)
+#
+# 실패 알림을 받으려면:
+# 1. GCP Console → Cloud Build → 설정 → Pub/Sub 알림 활성화
+# 2. Cloud Functions로 Slack webhook 연동
+# 또는
+# 3. Cloud Build Triggers의 "알림" 탭에서 이메일/Slack 연동
+
 availableSecrets:
   secretManager:
     - versionName: projects/equity-derivative-etl/secrets/CLOUD_BUILD_SSH_PRIVATE_KEY/versions/latest
       env: 'SSH_PRIVATE_KEY'
+    - versionName: projects/equity-derivative-etl/secrets/CLOUD_BUILD_SLACK_WEBHOOK_URL/versions/latest
+      env: 'CLOUD_BUILD_SLACK_WEBHOOK_URL'
 
 options:
   logging: CLOUD_LOGGING_ONLY
