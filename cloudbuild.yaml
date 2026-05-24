@@ -49,31 +49,29 @@ steps:
 
         if [ -n "$DOCKER_CHANGED" ]; then
           echo "[Docker] git pull + docker compose up -d --build"
+          SSH_SCRIPT='set -e
+        cd ~/airflow-etl-pipeline
+        [ -d dags ]    && sudo chown -R $(id -un):$(id -un) dags/    || true
+        [ -d include ] && sudo chown -R $(id -un):$(id -un) include/ || true
+        git pull origin main
+        docker compose up -d --build
+        echo "Docker rebuild done"'
           ssh -i /root/.ssh/id_rsa \
               -o StrictHostKeyChecking=no \
               -o ConnectTimeout=10 \
-              moneydigger777@34.50.49.51 bash << 'ENDSSH'
-set -e
-cd ~/airflow-etl-pipeline
-[ -d dags ]    && sudo chown -R $(id -un):$(id -un) dags/    || true
-[ -d include ] && sudo chown -R $(id -un):$(id -un) include/ || true
-git pull origin main
-docker compose up -d --build
-echo "Docker rebuild done"
-ENDSSH
+              moneydigger777@34.50.49.51 "$SSH_SCRIPT"
         else
           echo "[Code] git pull only"
+          SSH_SCRIPT='set -e
+        cd ~/airflow-etl-pipeline
+        [ -d dags ]    && sudo chown -R $(id -un):$(id -un) dags/    || true
+        [ -d include ] && sudo chown -R $(id -un):$(id -un) include/ || true
+        git pull origin main
+        echo "Code sync done"'
           ssh -i /root/.ssh/id_rsa \
               -o StrictHostKeyChecking=no \
               -o ConnectTimeout=10 \
-              moneydigger777@34.50.49.51 bash << 'ENDSSH'
-set -e
-cd ~/airflow-etl-pipeline
-[ -d dags ]    && sudo chown -R $(id -un):$(id -un) dags/    || true
-[ -d include ] && sudo chown -R $(id -un):$(id -un) include/ || true
-git pull origin main
-echo "Code sync done"
-ENDSSH
+              moneydigger777@34.50.49.51 "$SSH_SCRIPT"
         fi
     volumes:
       - name: 'ssh'
