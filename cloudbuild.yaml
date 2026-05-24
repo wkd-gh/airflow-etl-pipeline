@@ -17,7 +17,7 @@ steps:
       - '-c'
       - |
         mkdir -p /root/.ssh
-        echo "$$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa 
+        echo "$$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
         chmod 600 /root/.ssh/id_rsa
         ssh-keyscan -H 34.50.49.51 >> /root/.ssh/known_hosts
         chmod 600 /root/.ssh/known_hosts
@@ -87,27 +87,61 @@ steps:
       - |
         CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null \
           || git diff --name-only $(git rev-list --max-parents=0 HEAD) HEAD)
-        DOCKER_CHANGED=$(echo "$$CHANGED_FILES" \
+        DOCKER_CHANGED=$(echo "$CHANGED_FILES" \
           | grep -E "(Dockerfile|docker-compose\.ya?ml|requirements.*\.txt)" || true)
-
-        if [ -n "$$DOCKER_CHANGED" ]; then
-          DEPLOY_TYPE="Docker rebuild + deploy"
+ 
+        if [ -n "$DOCKER_CHANGED" ]; then
+          DEPLOY_TYPE=":docker: Docker rebuild + deploy"
         else
-          DEPLOY_TYPE="Code sync (git pull only)"
+          DEPLOY_TYPE=":file: Code sync (git pull only)"
         fi
-
+ 
+        LOG_URL="https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=equity-derivative-etl"
+        REPO_URL="https://github.com/Money-Digger/airflow-etl-pipeline/commit/$COMMIT_SHA"
+ 
         curl -s -X POST -H 'Content-type: application/json' \
           --data "{
             \"attachments\": [{
               \"color\": \"#36a64f\",
-              \"title\": \"[SUCCESS] airflow-etl-pipeline deployed\",
-              \"fields\": [
-                {\"title\": \"Branch\",       \"value\": \"$BRANCH_NAME\", \"short\": true},
-                {\"title\": \"Commit\",       \"value\": \"$SHORT_SHA\",   \"short\": true},
-                {\"title\": \"Deploy Type\",  \"value\": \"$$DEPLOY_TYPE\", \"short\": false}
-              ],
-              \"footer\": \"Google Cloud Build\",
-              \"ts\": $(date +%s)
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \":check_custom: *airflow-etl-pipeline deployed successfully*\"
+                  }
+                },
+                {
+                  \"type\": \"section\",
+                  \"fields\": [
+                    {\"type\": \"mrkdwn\", \"text\": \"*Branch*\n$BRANCH_NAME\"},
+                    {\"type\": \"mrkdwn\", \"text\": \"*Commit*\n<$REPO_URL|$SHORT_SHA>\"}
+                  ]
+                },
+                {
+                  \"type\": \"section\",
+                  \"fields\": [
+                    {\"type\": \"mrkdwn\", \"text\": \"*Deploy Type*\n$DEPLOY_TYPE\"},
+                    {\"type\": \"mrkdwn\", \"text\": \"*Repository*\n<https://github.com/Money-Digger/airflow-etl-pipeline|Money-Digger/airflow-etl-pipeline>\"}
+                  ]
+                },
+                {
+                  \"type\": \"actions\",
+                  \"elements\": [
+                    {
+                      \"type\": \"button\",
+                      \"text\": {\"type\": \"plain_text\", \"text\": \"View Build Logs :cloudbuild:\", \"emoji\": true},
+                      \"url\": \"$LOG_URL\"
+                    }
+                  ]
+                },
+                {
+                  \"type\": \"context\",
+                  \"elements\": [
+                    {\"type\": \"mrkdwn\", \"text\": \"$(date '+%Y-%m-%d %H:%M:%S') KST\"}
+                  ]
+                }
+              ]
             }]
           }" \
           "$$CLOUD_BUILD_SLACK_WEBHOOK_URL"
