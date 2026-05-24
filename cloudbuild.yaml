@@ -57,8 +57,8 @@ steps:
               moneydigger777@34.50.49.51 bash << 'ENDSSH'
 set -e
 cd ~/airflow-etl-pipeline
-[ -d dags ]    && sudo chown -R $USER:$USER dags/    || true
-[ -d include ] && sudo chown -R $USER:$USER include/ || true
+[ -d dags ]    && sudo chown -R $(id -un):$(id -un) dags/    || true
+[ -d include ] && sudo chown -R $(id -un):$(id -un) include/ || true
 git pull origin main
 docker compose up -d --build
 echo "✅ Docker 재빌드 및 배포 완료"
@@ -71,8 +71,8 @@ ENDSSH
               moneydigger777@34.50.49.51 bash << 'ENDSSH'
 set -e
 cd ~/airflow-etl-pipeline
-[ -d dags ]    && sudo chown -R $USER:$USER dags/    || true
-[ -d include ] && sudo chown -R $USER:$USER include/ || true
+[ -d dags ]    && sudo chown -R $(id -un):$(id -un) dags/    || true
+[ -d include ] && sudo chown -R $(id -un):$(id -un) include/ || true
 git pull origin main
 echo "✅ 코드 동기화 완료 (Docker 재빌드 불필요)"
 ENDSSH
@@ -114,9 +114,9 @@ ENDSSH
               \"ts\": $(date +%s)
             }]
           }" \
-          "$$CLOUD_BUILD_SLACK_WEBHOOK_URL"
+          "$$SLACK_WEBHOOK_URL"
     secretEnv:
-      - 'CLOUD_BUILD_SLACK_WEBHOOK_URL'
+      - 'SLACK_WEBHOOK_URL'
 
 # ── 5. Slack 실패 알림 (빌드 실패 시에도 항상 실행) ──────────
 # Cloud Build는 step 실패 시 이후 step을 건너뜀
@@ -133,8 +133,8 @@ availableSecrets:
   secretManager:
     - versionName: projects/equity-derivative-etl/secrets/CLOUD_BUILD_SSH_PRIVATE_KEY/versions/latest
       env: 'SSH_PRIVATE_KEY'
-    - versionName: projects/equity-derivative-etl/secrets/CLOUD_BUILD_SLACK_WEBHOOK_URL/versions/latest
-      env: 'CLOUD_BUILD_SLACK_WEBHOOK_URL'
+    - versionName: projects/equity-derivative-etl/secrets/SLACK_WEBHOOK_URL/versions/latest
+      env: 'SLACK_WEBHOOK_URL'
 
 options:
   logging: CLOUD_LOGGING_ONLY
