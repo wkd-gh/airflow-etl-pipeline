@@ -17,7 +17,7 @@ steps:
       - '-c'
       - |
         mkdir -p /root/.ssh
-        echo "$$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
+        echo "$$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa 
         chmod 600 /root/.ssh/id_rsa
         ssh-keyscan -H 34.50.49.51 >> /root/.ssh/known_hosts
         chmod 600 /root/.ssh/known_hosts
