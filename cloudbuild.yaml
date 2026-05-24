@@ -105,10 +105,11 @@ steps:
               \"color\": \"#36a64f\",
               \"blocks\": [
                 {
-                  \"type\": \"section\",
+                  \"type\": \"header\",
                   \"text\": {
-                    \"type\": \"mrkdwn\",
-                    \"text\": \":check-custom: *airflow-etl-pipeline deployed successfully*\"
+                    \"type\": \"plain_text\",
+                    \"text\": \":check-custom:  airflow-etl-pipeline | deploy success\",
+                    \"emoji\": true
                   }
                 },
                 {
