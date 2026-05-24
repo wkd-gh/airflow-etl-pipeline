@@ -115,13 +115,13 @@ steps:
                   \"type\": \"section\",
                   \"fields\": [
                     {\"type\": \"mrkdwn\", \"text\": \"*Branch*\n$BRANCH_NAME\"},
-                    {\"type\": \"mrkdwn\", \"text\": \"*Commit*\n<$REPO_URL|$SHORT_SHA>\"}
+                    {\"type\": \"mrkdwn\", \"text\": \"*Commit*\n<$$REPO_URL|$SHORT_SHA>\"}
                   ]
                 },
                 {
                   \"type\": \"section\",
                   \"fields\": [
-                    {\"type\": \"mrkdwn\", \"text\": \"*Deploy Type*\n$DEPLOY_TYPE\"},
+                    {\"type\": \"mrkdwn\", \"text\": \"*Deploy Type*\n$$DEPLOY_TYPE\"},
                     {\"type\": \"mrkdwn\", \"text\": \"*Repository*\n<https://github.com/Money-Digger/airflow-etl-pipeline|Money-Digger/airflow-etl-pipeline>\"}
                   ]
                 },
@@ -131,14 +131,14 @@ steps:
                     {
                       \"type\": \"button\",
                       \"text\": {\"type\": \"plain_text\", \"text\": \"View Build Logs :cloudbuild:\", \"emoji\": true},
-                      \"url\": \"$LOG_URL\"
+                      \"url\": \"$$LOG_URL\"
                     }
                   ]
                 },
                 {
                   \"type\": \"context\",
                   \"elements\": [
-                    {\"type\": \"mrkdwn\", \"text\": \"$(date '+%Y-%m-%d %H:%M:%S') KST\"}
+                    {\"type\": \"mrkdwn\", \"text\": \"$$(date '+%Y-%m-%d %H:%M:%S') KST\"}
                   ]
                 }
               ]
